@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SK POLYMERS &mdash; GST Tax Invoice</title>
+<meta name="description" content="GST Tax Invoice generator for SK POLYMERS - fill, auto-calculate totals and amount in words, download as PDF.">
+<meta name="theme-color" content="#333F50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SK Invoice">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ═══════════ TOOLBAR (screen only) ═══════════ -->
+<header class="toolbar no-print">
+  <div class="tb-brand">
+    <img src="icons/favicon.png" alt="" class="tb-logo">
+    <div class="tb-title"><strong>SK POLYMERS</strong><span>GST Tax Invoice</span></div>
+    <button type="button" id="btnInstall" class="btn btn-ghost hidden">⤓ Install App</button>
+  </div>
+
+  <div class="tb-fields">
+    <label class="fld">
+      <span>Company Name</span>
+      <input type="text" id="inCompany" placeholder="ASBESTOS INDIA" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="fld">
+      <span>Document Name</span>
+      <input type="text" id="inDocName" placeholder="138" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="fld fld-file">
+      <span>PDF file name</span>
+      <output id="outFileName">invoice.pdf</output>
+    </div>
+  </div>
+
+  <div class="tb-actions">
+    <button type="button" id="btnDownload" class="btn btn-primary">⬇ Download PDF</button>
+    <button type="button" id="btnPrint"  class="btn">🖨 Print</button>
+    <button type="button" id="btnAddRow" class="btn">＋ Row</button>
+    <button type="button" id="btnDelRow" class="btn">− Row</button>
+    <button type="button" id="btnSample" class="btn">Sample</button>
+    <button type="button" id="btnClear"  class="btn btn-danger">Clear</button>
+    <span class="zoom">
+      <button type="button" id="btnZoomOut" class="btn btn-icon" aria-label="Zoom out">−</button>
+      <b id="zoomLabel">Fit</b>
+      <button type="button" id="btnZoomIn" class="btn btn-icon" aria-label="Zoom in">+</button>
+    </span>
+  </div>
+
+  <div class="tb-tax">
+    <span class="tax-lbl">Tax</span>
+    <label class="chip"><input type="radio" name="taxmode" value="intra" id="taxIntra"><span>CGST + SGST</span></label>
+    <label class="chip"><input type="radio" name="taxmode" value="inter" id="taxInter" checked><span>IGST</span></label>
+    <label class="chip chip-num">Rate <input type="number" id="inTaxRate" value="18" min="0" max="100" step="0.01"> %</label>
+    <label class="chip chip-chk"><input type="checkbox" id="chkRound" checked><span>Round off</span></label>
+    <span class="hint" id="taxHint"></span>
+  </div>
+</header>
+
+<!-- ═══════════ A4 PAGE ═══════════ -->
+<main class="stage" id="stage">
+<div class="page-wrap" id="pageWrap">
+<section class="page" id="invoice">
+ <div class="sheet">
+
+  <!-- ---- rules ---- -->
+  <i class="hr" style="top:78.2pt"></i>
+  <i class="hr" style="top:92.1pt"></i>
+  <i class="hr" style="top:163.6pt"></i>
+  <i class="hr" style="top:191pt"></i>
+  <i class="hr" style="top:459.8pt"></i>
+  <i class="hr" style="top:517.4pt"></i>
+  <i class="hr" style="top:540.9pt"></i>
+  <i class="hr" style="top:177.1pt;left:417.1pt;width:105.6pt"></i>
+  <i class="hr" style="top:473pt;left:325pt;width:197.7pt"></i>
+  <i class="hr" style="top:485pt;left:325pt;width:197.7pt"></i>
+  <i class="hr" style="top:497.1pt;left:325pt;width:197.7pt"></i>
+
+  <i class="vr" style="left:268.3pt;top:92.1pt;height:71.5pt"></i>
+  <i class="vr" style="left:34.6pt;top:163.6pt;height:296.2pt"></i>
+  <i class="vr" style="left:268.3pt;top:163.6pt;height:296.2pt"></i>
+  <i class="vr" style="left:311pt;top:163.6pt;height:296.2pt"></i>
+  <i class="vr" style="left:360.5pt;top:163.6pt;height:296.2pt"></i>
+  <i class="vr" style="left:417.1pt;top:163.6pt;height:296.2pt"></i>
+  <i class="vr" style="left:495.4pt;top:177.1pt;height:282.7pt"></i>
+  <i class="vr" style="left:153.1pt;top:459.8pt;height:57.6pt"></i>
+  <i class="vr" style="left:325pt;top:459.8pt;height:57.6pt"></i>
+  <i class="vr" style="left:417.1pt;top:459.8pt;height:57.6pt"></i>
+  <i class="vr" style="left:495.4pt;top:459.8pt;height:57.6pt"></i>
+  <i class="vr" style="left:325pt;top:517.4pt;height:23.5pt"></i>
+  <i class="vr" style="left:417.1pt;top:517.4pt;height:23.5pt"></i>
+  <i class="vr" style="left:495.4pt;top:517.4pt;height:23.5pt"></i>
+
+  <!-- ---- letterhead ---- -->
+  <img class="s-logo" id="imgLogo" alt="SK Polymers logo">
+  <img class="s-bush" id="imgBush" alt="">
+  <div class="s-mob">Mob No. : 9152995667</div>
+  <div class="s-gsttax"><u>GST-TAX INVOICE</u></div>
+  <div class="s-brand">SK POLYMERS</div>
+  <div class="s-sub">Teflon Products, Ring gasket, Rod, Bush, Sheet, Caf Gasket All Type of industrial gasket</div>
+  <div class="s-addr">Gujrathi chawl, Azad nagar, Chitalsar Manpada, Thane (W) 400607 EMAIL : skpolymer22@gmail.com</div>
+
+  <!-- ---- party / bill meta ---- -->
+  <div class="l-ms">M/s. :</div>
+  <div class="v-company ed" id="fCompany" contenteditable="true" data-ph="Buyer name"></div>
+  <div class="v-address ed" id="fAddress" contenteditable="true" data-ph="Buyer address"></div>
+  <div class="l-gst">GST NO :</div>
+  <div class="v-gst ed" id="fBuyerGst" contenteditable="true" data-ph="Buyer GSTIN"></div>
+
+  <div class="l-bill">BILL NO. :</div>
+  <div class="v-bill ed" id="fBillNo" contenteditable="true" data-ph="No."></div>
+  <div class="l-date">DATE :</div>
+  <div class="v-date ed" id="fBillDate" contenteditable="true" data-ph="dd/mm/yyyy"></div>
+  <div class="l-po">YOUR ORDER NUMBER. :</div>
+  <div class="v-po ed" id="fPoNo" contenteditable="true" data-ph="—"></div>
+  <div class="l-podate">DATE:</div>
+  <div class="v-podate ed" id="fPoDate" contenteditable="true" data-ph="—"></div>
+  <div class="l-state">STATE CODE. :</div>
+  <div class="v-state ed" id="fStateCode" contenteditable="true">27</div>
+
+  <!-- ---- items head ---- -->
+  <div class="th th-sr">SR<br>NO.</div>
+  <div class="th th-desc">D E S C R I P T I O N</div>
+  <div class="th th-hsn">HSN<br>CODE</div>
+  <div class="th th-qty">QTY.</div>
+  <div class="th th-rate">RATE</div>
+  <div class="th th-amt">AMOUNT</div>
+  <div class="th th-rs">RS.</div>
+  <div class="th th-p">P.</div>
+
+  <!-- ---- items body ---- -->
+  <div class="items">
+    <div class="grp ed" id="fGroup" contenteditable="true" data-ph="Item group title"></div>
+    <table class="rows"><colgroup>
+      <col style="width:34.6pt"><col style="width:233.7pt"><col style="width:42.7pt">
+      <col style="width:49.5pt"><col style="width:56.6pt"><col style="width:78.3pt"><col style="width:27.3pt">
+    </colgroup><tbody id="rowsBody"></tbody></table>
+  </div>
+
+  <!-- ---- footer blocks ---- -->
+  <div class="f-gstin">GSTIN NO : 27BQXPP4592G1ZY</div>
+  <div class="f-pan">PAN NO :&nbsp; BQXPP4592G</div>
+  <div class="f-bank1">BANK: INDIAN BANK</div>
+  <div class="f-bank2">BRANCH: BRAHMAND THANE(W)</div>
+  <div class="f-bank3">A/C: 7291183874</div>
+  <div class="f-bank4">IFSC CODE: IDIB000B110</div>
+
+  <div class="f-l1">TAXABLE AMOUNT</div>
+  <div class="f-rs1" id="tTaxableRs">0</div>
+  <div class="f-p1"  id="tTaxableP">00</div>
+
+  <div class="f-l2">CGST</div><div class="f-pct2" id="pctCgst">9 %</div>
+  <div class="f-rs2" id="tCgstRs"></div><div class="f-p2" id="tCgstP"></div>
+
+  <div class="f-l3">SGST</div><div class="f-pct3" id="pctSgst">9 %</div>
+  <div class="f-rs3" id="tSgstRs"></div><div class="f-p3" id="tSgstP"></div>
+
+  <div class="f-l4">IGST</div><div class="f-pct4" id="pctIgst">18<sup>%</sup></div>
+  <div class="f-rs4" id="tIgstRs"></div><div class="f-p4" id="tIgstP">-</div>
+
+  <!-- ---- grand total ---- -->
+  <div class="g-rup">RUPEES:</div>
+  <div class="g-words" id="tWords">Zero rupees only</div>
+  <div class="g-lbl">GRAND TOTAL</div>
+  <div class="g-rs" id="tGrandRs">0</div>
+  <div class="g-p"  id="tGrandP">00</div>
+
+  <!-- ---- terms ---- -->
+  <div class="tm">
+    <div class="tm-l"><span class="tm-n">1.</span>We are not responsible for anything agter goods leave our go down</div>
+    <div class="tm-l"><span class="tm-n">2.</span>All transaction and bills are subject to thane juridiction</div>
+    <div class="tm-l"><span class="tm-n">3.</span>Interest at the rate of 12% per annum will be charged if not paid</div>
+    <div class="tm-l tm-c">within 30 days of deliivery</div>
+    <div class="tm-l"><span class="tm-n">4.</span>Goods once soid will not be taken back.</div>
+    <div class="tm-l"><span class="tm-n">5.</span>All distriputes regarding this bill should be communicated to us</div>
+    <div class="tm-l tm-c2">in Writings within a week from the date of receipt of this bill.</div>
+  </div>
+  <div class="cert">
+    <div>I/We hear by certify that registration certificate under the GST Act 2017 / 2018</div>
+    <div>Is in force on the date of with the sale of the goods specified in the tax invoice</div>
+    <div>Has been efFected by me / us &amp; it shall be accounted for the turnover of sale while</div>
+    <div>Filling of return &amp; the due tax if any payable on the sale has been paid or shall be paid</div>
+  </div>
+
+  <!-- ---- signature ---- -->
+  <div class="sg-for">For SK POLYMERS</div>
+  <img class="sg-img" id="imgSign" alt="">
+  <div class="sg-auth">AUTHORISED SIGNATURE</div>
+
+ </div>
+</section>
+</div>
+</main>
+
+<div class="toast no-print" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets.js"></script>
+<script src="vendor/html2pdf.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
