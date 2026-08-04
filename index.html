@@ -17,51 +17,61 @@
 </head>
 <body>
 
-<!-- ═══════════ TOOLBAR (screen only) ═══════════ -->
+<!-- ═══════════ TOOLBAR (screen only, scrolls with the page) ═══════════ -->
 <header class="toolbar no-print">
-  <div class="tb-brand">
+ <div class="tb-inner">
+
+  <div class="tb-top">
     <img src="icons/favicon.png" alt="" class="tb-logo">
     <div class="tb-title"><strong>SK POLYMERS</strong><span>GST Tax Invoice</span></div>
-    <button type="button" id="btnInstall" class="btn btn-ghost hidden">⤓ Install App</button>
+    <button type="button" id="btnInstall" class="btn btn-ghost hidden">Install app</button>
   </div>
 
   <div class="tb-fields">
     <label class="fld">
-      <span>Company Name</span>
+      <span class="fld-lbl">Company name</span>
       <input type="text" id="inCompany" placeholder="ASBESTOS INDIA" autocomplete="off" spellcheck="false">
     </label>
     <label class="fld">
-      <span>Document Name</span>
+      <span class="fld-lbl">Document name</span>
       <input type="text" id="inDocName" placeholder="138" autocomplete="off" spellcheck="false">
     </label>
-    <div class="fld fld-file">
-      <span>PDF file name</span>
-      <output id="outFileName">invoice.pdf</output>
+    <div class="fld">
+      <span class="fld-lbl">PDF file name</span>
+      <output id="outFileName" class="fld-out">invoice.pdf</output>
     </div>
   </div>
 
-  <div class="tb-actions">
-    <button type="button" id="btnDownload" class="btn btn-primary">⬇ Download PDF</button>
-    <button type="button" id="btnPrint"  class="btn">🖨 Print</button>
-    <button type="button" id="btnAddRow" class="btn">＋ Row</button>
-    <button type="button" id="btnDelRow" class="btn">− Row</button>
-    <button type="button" id="btnSample" class="btn">Sample</button>
-    <button type="button" id="btnClear"  class="btn btn-danger">Clear</button>
-    <span class="zoom">
-      <button type="button" id="btnZoomOut" class="btn btn-icon" aria-label="Zoom out">−</button>
-      <b id="zoomLabel">Fit</b>
-      <button type="button" id="btnZoomIn" class="btn btn-icon" aria-label="Zoom in">+</button>
-    </span>
+  <div class="tb-bar">
+    <div class="tb-group">
+      <button type="button" id="btnDownload" class="btn btn-primary">Download PDF</button>
+      <button type="button" id="btnPrint" class="btn">Print</button>
+    </div>
+    <div class="tb-group">
+      <button type="button" id="btnAddRow" class="btn">Add row</button>
+      <button type="button" id="btnDelRow" class="btn">Remove row</button>
+      <button type="button" id="btnSample" class="btn">Sample</button>
+      <button type="button" id="btnClear" class="btn btn-danger">Clear</button>
+    </div>
+    <div class="seg seg-zoom" role="group" aria-label="Zoom">
+      <button type="button" id="btnZoomOut" class="seg-btn" aria-label="Zoom out">−</button>
+      <span class="seg-val" id="zoomLabel">Fit</span>
+      <button type="button" id="btnZoomIn" class="seg-btn" aria-label="Zoom in">+</button>
+    </div>
   </div>
 
-  <div class="tb-tax">
-    <span class="tax-lbl">Tax</span>
-    <label class="chip"><input type="radio" name="taxmode" value="intra" id="taxIntra"><span>CGST + SGST</span></label>
-    <label class="chip"><input type="radio" name="taxmode" value="inter" id="taxInter" checked><span>IGST</span></label>
-    <label class="chip chip-num">Rate <input type="number" id="inTaxRate" value="18" min="0" max="100" step="0.01"> %</label>
-    <label class="chip chip-chk"><input type="checkbox" id="chkRound" checked><span>Round off</span></label>
+  <div class="tb-bar tb-tax">
+    <span class="tb-lbl">Tax</span>
+    <div class="seg seg-radio">
+      <label class="seg-opt"><input type="radio" name="taxmode" value="intra" id="taxIntra"><span>CGST + SGST</span></label>
+      <label class="seg-opt"><input type="radio" name="taxmode" value="inter" id="taxInter" checked><span>IGST</span></label>
+    </div>
+    <label class="rate"><span>Rate</span><input type="number" id="inTaxRate" value="18" min="0" max="100" step="0.01"><i>%</i></label>
+    <label class="chk"><input type="checkbox" id="chkRound" checked><span>Round off total</span></label>
     <span class="hint" id="taxHint"></span>
   </div>
+
+ </div>
 </header>
 
 <!-- ═══════════ A4 PAGE ═══════════ -->

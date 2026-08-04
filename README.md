@@ -1,7 +1,10 @@
 # SK POLYMERS — GST Tax Invoice (HTML app)
 
-A pixel-for-pixel HTML rebuild of the SK POLYMERS GST tax invoice, with live
-calculation, amount in words, one-click PDF download and offline app install.
+An HTML rebuild of the SK POLYMERS GST tax invoice — same wording, logo,
+signature, fonts and A4 geometry as the original PDF, with the column
+alignment tidied up (headings centred over their columns, every rupee figure
+on one right edge, tax rows on one baseline). Plus live calculation, amount in
+words, one-click PDF download and offline app install.
 
 ## Run it
 
