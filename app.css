@@ -197,20 +197,20 @@ body{
 
 /* ---------- party / bill meta ---------- */
 /* left block: labels share one left edge, values share the next */
-.l-ms     {left:4.8pt;  top:94.1pt;  font-size:12.3pt}
+.l-ms     {left:4.8pt;  top:94.1pt;  width:46pt;  font-size:12.3pt}
 .v-company{left:52pt;   top:95.6pt;  width:214pt}
-.l-gst    {left:4.8pt;  top:152pt}
-.v-gst    {left:52pt;   top:152pt;   width:214pt}
+.l-gst    {left:4.8pt;  top:152pt;   width:46pt}
+.v-gst    {left:52pt;   top:152pt;   width:214pt;text-transform:uppercase}
 /* right block: two label columns, two value columns, values on the label baseline */
-.l-bill   {left:273.9pt;top:94.2pt;  font-size:11pt}
+.l-bill   {left:273.9pt;top:94.2pt;  width:51pt;  font-size:11pt}
 .v-bill   {left:326.5pt;top:94.6pt;  width:90pt}
-.l-date   {left:422.5pt;top:94.2pt;  font-size:11.4pt}
+.l-date   {left:422.5pt;top:94.2pt;  width:34pt;  font-size:11.4pt}
 .v-date   {left:458pt;  top:94.9pt;  width:64pt}
-.l-po     {left:273.9pt;top:121.2pt; font-size:11.05pt}
-.v-po     {left:390.9pt;top:121.6pt; width:30pt}
-.l-podate {left:422.5pt;top:121.2pt}
+.l-po     {left:273.9pt;top:121.2pt; width:115pt; font-size:11.05pt}
+.v-po     {left:390.9pt;top:121.6pt; width:26pt}   /* 30pt used to cross the 417.1pt rule */
+.l-podate {left:422.5pt;top:121.2pt; width:34pt}
 .v-podate {left:458pt;  top:121.2pt; width:64pt}
-.l-state  {left:273.9pt;top:148.2pt; font-size:11pt}
+.l-state  {left:273.9pt;top:148.2pt; width:65pt;  font-size:11pt}
 .v-state  {left:341.1pt;top:148.6pt; width:60pt}
 
 /* buyer address is the only multi-line field, so it wins over the nowrap default */
@@ -245,18 +245,21 @@ body{
 .rows .c-p   {text-align:center}
 
 /* ---------- footer blocks ---------- */
-.f-gstin{left:4.8pt;  top:461pt}
-.f-pan  {left:4.8pt;  top:488.9pt}
-.f-bank1{left:156.5pt;top:461pt}
-.f-bank2{left:156.5pt;top:474.4pt}
-.f-bank3{left:156.5pt;top:487.9pt}
-.f-bank4{left:156.5pt;top:501.4pt}
+/* widths stop the left column from running into the bank column, and the bank
+   column from crossing the rule at 325pt */
+.f-gstin{left:4.8pt;  top:461pt;  width:148pt}
+.f-pan  {left:4.8pt;  top:488.9pt;width:148pt}
+.f-bank1{left:156.5pt;top:461pt;  width:166pt}
+.f-bank2{left:156.5pt;top:474.4pt;width:166pt}
+.f-bank3{left:156.5pt;top:487.9pt;width:166pt}
+.f-bank4{left:156.5pt;top:501.4pt;width:166pt}
 
-/* label / % / rupees / paise share one grid so the four tax rows line up */
-.f-l1{left:330.7pt;top:460.9pt}
-.f-l2{left:330.7pt;top:473.1pt}
-.f-l3{left:330.7pt;top:485.3pt}
-.f-l4{left:330.7pt;top:502.5pt}
+/* label / % / rupees / paise share one grid so the four tax rows line up.
+   84pt keeps the label inside the 325 -> 417.1pt cell on every font fallback */
+.f-l1{left:330.7pt;top:460.9pt;width:84pt}
+.f-l2{left:330.7pt;top:473.1pt;width:84pt}
+.f-l3{left:330.7pt;top:485.3pt;width:84pt}
+.f-l4{left:330.7pt;top:502.5pt;width:84pt}
 .f-pct2,.f-pct3,.f-pct4{left:325pt;width:92.1pt;text-align:right;padding-right:12pt}
 .f-pct2{top:473.1pt}
 .f-pct3{top:485.3pt}
@@ -271,10 +274,12 @@ body{
 .f-rs4{top:502.5pt} .f-p4{top:502.5pt}
 
 /* ---------- grand total ---------- */
-.g-rup  {left:4.8pt;  top:523.9pt}
-.g-words{left:44.1pt; top:524.3pt;width:280pt;overflow:hidden;
+/* "RUPEES:" needs ~46pt in an Arial fallback, so the words column starts a few
+   points further right than the original - otherwise the label shrinks alone */
+.g-rup  {left:4.8pt;  top:523.9pt;width:44pt}
+.g-words{left:50pt;   top:524.3pt;width:273pt;
          font-family:Calibri,Carlito,"Segoe UI",sans-serif;font-size:10pt}
-.g-lbl  {left:330.7pt;top:523.2pt;font-size:11.3pt}
+.g-lbl  {left:330.7pt;top:523.2pt;width:84pt;font-size:11.3pt}
 .g-rs   {left:417.1pt;top:523.8pt;width:78.3pt;text-align:right;padding-right:12pt}
 .g-p    {left:495.4pt;top:523.8pt;width:27.3pt;text-align:center}
 
@@ -288,9 +293,22 @@ body{
 .cert div{position:static;line-height:7.83pt}
 
 /* ---------- signature ---------- */
-.sg-for {left:333.2pt;top:544.3pt;font-size:24.5pt}
+/* both lines are boxed to the right cell (325.4 -> 522.7pt) and auto-shrunk by
+   fitAll(), so the trailing "S" / "E" can never fall outside the sheet border */
+.sg-for {left:333.2pt;top:544.3pt;width:187pt;font-size:24.5pt}
 .sg-img {position:absolute;left:383.6pt;top:572.1pt;width:83pt;height:45.6pt}
-.sg-auth{left:325.4pt;top:649.7pt;font-size:18.25pt}
+.sg-auth{left:325.4pt;top:649.7pt;width:195pt;font-size:18.25pt}
+
+/* ---------- overflow guard ----------
+   Everything the auto-fitter measures keeps its text on one line inside its own
+   box; if a font fallback is still too wide the leftover is clipped, never
+   printed over the neighbouring cell. */
+.s-sub,.s-addr,.th-desc,
+.l-ms,.l-gst,.l-bill,.l-date,.l-po,.l-podate,.l-state,
+.v-company,.v-gst,.v-bill,.v-date,.v-po,.v-podate,.v-state,.grp,
+.f-gstin,.f-pan,.f-bank1,.f-bank2,.f-bank3,.f-bank4,
+.f-l1,.f-l2,.f-l3,.f-l4,.g-rup,.g-words,.g-lbl,
+.tm .tm-l,.cert div,.sg-for,.sg-auth{overflow:hidden;white-space:nowrap}
 
 /* ─────────────────────────  editable fields  ───────────────────────── */
 .ed{outline:none}
@@ -298,6 +316,10 @@ body{
 .ed:empty::before{content:attr(data-ph);color:#b9bfc9;font-style:italic}
 .rows td.ed:focus{background:#fff7d6}
 body:not(.exporting) .ed:not(:focus):hover{background:#f2f7ff}
+/* required-field flag - screen only, never reaches the PDF */
+body:not(.exporting) .ed.missing{background:#ffe8e8;box-shadow:0 0 0 1pt #d13b3b}
+body:not(.exporting) .ed.missing:focus{background:#fff7d6;box-shadow:0 0 0 1pt #e2a62a}
+.req{color:#b3261e;font-weight:700;margin-left:2px}
 body.exporting .ed:empty::before{content:"";}
 body.exporting .ed{background:none !important;box-shadow:none !important}
 body.exporting .page{box-shadow:none}
@@ -339,11 +361,15 @@ body.exporting .page{box-shadow:none}
 /* ─────────────────────────  print  ───────────────────────── */
 @page{size:A4 portrait;margin:0}
 @media print{
-  html,body{background:#fff;margin:0;padding:0;overflow:visible}
+  html,body{background:#fff;margin:0;padding:0;overflow:hidden;height:auto}
   .no-print,.toolbar,.toast{display:none !important}
-  .stage{padding:0;display:block}
+  .stage{padding:0;margin:0;display:block;overflow:hidden}
   .page-wrap{transform:none !important;width:auto !important;height:auto !important}
-  .page{box-shadow:none;margin:0;width:595.32pt;height:841.92pt;page-break-after:avoid}
+  /* 841pt instead of a full 841.92: a sub-pixel overhang is what makes browsers
+     emit a second, empty sheet. Nothing on the page sits below 717pt. */
+  .page{box-shadow:none;margin:0;width:595.32pt;height:841pt;overflow:hidden;
+        page-break-after:avoid;page-break-inside:avoid;break-inside:avoid}
   .ed{background:none !important;box-shadow:none !important}
+  .ed.missing{background:none !important;box-shadow:none !important}
   .ed:empty::before{content:""}
 }

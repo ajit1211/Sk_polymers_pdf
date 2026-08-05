@@ -83,6 +83,136 @@ function split(v) {
 }
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
+/* -------------------------------------------------------------- auto-fit
+   Every box on the sheet is a fixed number of points wide. Calibri is what the
+   original document used, but phones and most non-Windows browsers fall back to
+   a wider face, which is why labels such as TAXABLE AMOUNT, the rupees-in-words
+   line and the signature block used to spill past their rules. Each listed box
+   is measured off-screen and its font-size stepped down until the text fits. */
+/* Boxes that belong to the same visual block are shrunk by one shared ratio, so
+   a single long label can't leave its neighbours at a different size. */
+var FIT_GROUPS = [
+  ['.l-ms', '.l-gst'],                                    /* buyer column labels */
+  ['.l-bill', '.l-date', '.l-po', '.l-podate', '.l-state'], /* bill column labels */
+  ['.f-gstin', '.f-pan'],
+  ['.f-bank1', '.f-bank2', '.f-bank3', '.f-bank4'],
+  ['.f-l1', '.f-l2', '.f-l3', '.f-l4', '.g-lbl'],         /* tax label column */
+  ['.tm .tm-l'],
+  ['.cert div'],
+  ['.sg-for', '.sg-auth']
+];
+
+/* the rest stand alone - their size doesn't have to agree with anything */
+var FIT_SOLO = [
+  '.s-sub', '.s-addr', '.th-desc',
+  '.v-company', '.v-gst', '.v-bill', '.v-date', '.v-po', '.v-podate', '.v-state',
+  '.grp', '.g-rup', '.g-words', '.rows td'
+];
+
+var meter = document.createElement('span');
+meter.style.cssText = 'position:absolute;left:-10000px;top:0;white-space:pre;' +
+                      'visibility:hidden;pointer-events:none';
+document.body.appendChild(meter);
+
+/* text as it will actually be laid out - absolutely positioned children (the
+   "1." markers in the terms list) sit outside the flow, so they don't count */
+function flowText(el) {
+  var out = '', i, n;
+  for (i = 0; i < el.childNodes.length; i++) {
+    n = el.childNodes[i];
+    if (n.nodeType === 3) { out += n.nodeValue; continue; }
+    if (n.nodeType !== 1) continue;
+    if (getComputedStyle(n).position === 'absolute') continue;
+    out += n.textContent;
+  }
+  return out;
+}
+
+/* recalc() runs on every keystroke and re-fits the whole sheet, so the same
+   string/font/size triple gets asked for over and over - memoise it */
+var mcache = {};
+
+function measure(cs, text, sizePt) {
+  var key = cs.fontFamily + '|' + cs.fontWeight + '|' + cs.fontStyle + '|' +
+            cs.letterSpacing + '|' + cs.textTransform + '|' + sizePt + '|' + text;
+  if (mcache[key] != null) return mcache[key];
+
+  meter.style.fontFamily    = cs.fontFamily;
+  meter.style.fontWeight    = cs.fontWeight;
+  meter.style.fontStyle     = cs.fontStyle;
+  meter.style.letterSpacing = cs.letterSpacing;
+  meter.style.textTransform = cs.textTransform;
+  meter.style.fontSize      = sizePt + 'pt';
+  meter.textContent         = text;
+
+  var w = meter.getBoundingClientRect().width;  /* layout px - meter is untransformed */
+  mcache[key] = w;
+  return w;
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { mcache = {}; });
+
+/* shrinks el until its text fits its box; returns fitted/original size */
+function fit(el) {
+  if (el.style.fontSize) el.style.fontSize = '';   /* back to the stylesheet size */
+  var text = flowText(el);
+  if (!text.trim()) { el._basePt = 0; return 1; }
+
+  var cs = getComputedStyle(el);
+  /* clientWidth is layout px and ignores the page's scale() transform */
+  var avail = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) -
+                               (parseFloat(cs.paddingRight) || 0) - 1;
+  var base = parseFloat(cs.fontSize) * 0.75;    /* px -> pt */
+  el._basePt = base;
+  if (!(avail > 0)) return 1;
+
+  var w = measure(cs, text, base);
+  if (w <= avail) return 1;
+
+  var s = Math.floor(base * avail / w * 20) / 20;   /* first guess, 0.05pt steps */
+  var guard = 0;
+  while (s > 5 && measure(cs, text, s) > avail && guard++ < 60) s -= 0.05;
+  el.style.fontSize = s.toFixed(2) + 'pt';
+  return s / base;
+}
+
+function collect(sels) {
+  var els = [], i, j, list;
+  for (i = 0; i < sels.length; i++) {
+    list = document.querySelectorAll(sels[i]);
+    for (j = 0; j < list.length; j++) els.push(list[j]);
+  }
+  return els;
+}
+
+function fitAll() {
+  var i, j, els, ratio;
+
+  els = collect(FIT_SOLO);
+  for (i = 0; i < els.length; i++) fit(els[i]);
+
+  for (i = 0; i < FIT_GROUPS.length; i++) {
+    els = collect(FIT_GROUPS[i]);
+    ratio = 1;
+    for (j = 0; j < els.length; j++) ratio = Math.min(ratio, fit(els[j]));
+    if (ratio >= 1) continue;
+    /* the tightest box in the block sets the size for the whole block */
+    for (j = 0; j < els.length; j++) {
+      if (els[j]._basePt) els[j].style.fontSize = (els[j]._basePt * ratio).toFixed(2) + 'pt';
+    }
+  }
+}
+
+var fitPending = false;
+function scheduleFit() {
+  if (fitPending) return;
+  fitPending = true;
+  var run = function () { fitPending = false; fitAll(); };
+  if (window.requestAnimationFrame) window.requestAnimationFrame(run);
+  else setTimeout(run, 16);
+}
+window.addEventListener('resize', scheduleFit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+
 /* ------------------------------------------------------------------ rows */
 var rowsBody = $('rowsBody');
 
@@ -180,6 +310,7 @@ function recalc() {
   $('tWords').textContent   = amountInWords(g.r, g.p);
 
   syncFileName();
+  scheduleFit();
   save();
 }
 
@@ -205,7 +336,9 @@ function syncFileName() { $('outFileName').textContent = fileBase() + '.pdf'; }
 function bindMirror(inputEl, fieldEl) {
   inputEl.addEventListener('input', function () {
     if (fieldEl.textContent !== inputEl.value) fieldEl.textContent = inputEl.value;
-    syncFileName(); save();
+    /* typing in the toolbar fills the sheet field, so drop its required flag too */
+    if (inputEl.value.trim() !== '') fieldEl.classList.remove('missing');
+    syncFileName(); scheduleFit(); save();
   });
   fieldEl.addEventListener('input', function () {
     var v = fieldEl.textContent.replace(/\s+$/, '');
@@ -243,9 +376,19 @@ document.addEventListener('input', function (e) {
   if (e.target && e.target.classList && e.target.classList.contains('ed')) recalc();
 });
 
+/* GSTIN is always upper case. text-transform paints it that way while typing
+   (and carries into the PDF); this rewrites the stored text on the way out so
+   the saved value matches what is printed. Done on blur - rewriting mid-keystroke
+   would throw the caret to the start of the field. */
+$('fBuyerGst').addEventListener('blur', function () {
+  var el = $('fBuyerGst');
+  var up = el.textContent.toUpperCase();
+  if (el.textContent !== up) { el.textContent = up; save(); }
+});
+
 /* auto-pick IGST / CGST+SGST from the buyer GSTIN state code */
 $('fBuyerGst').addEventListener('input', function () {
-  var g = $('fBuyerGst').textContent.trim();
+  var g = $('fBuyerGst').textContent.trim().toUpperCase();
   var code = g.slice(0, 2);
   if (!/^\d{2}$/.test(code)) { $('taxHint').textContent = ''; return; }
   if (code === '27') {
@@ -300,7 +443,9 @@ function restore(d, silent) {
   $('chkRound').checked = d.round !== false;
   $('inCompany').value = d.company || $('fCompany').textContent;
   $('inDocName').value = d.docName || $('fBillNo').textContent;
+  REQUIRED.forEach(function (r) { $(r.id).classList.remove('missing'); });
   recalc();
+  fitAll();
   if (!silent) toast('Restored');
   return true;
 }
@@ -376,8 +521,46 @@ function toast(msg) {
   toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
 }
 
+/* -------------------------------------------------------------- required */
+/* Note: DATE here is the invoice date (fBillDate), not the order date. */
+var REQUIRED = [
+  { id: 'fCompany',  label: 'Company name' },
+  { id: 'fBillNo',   label: 'Bill no.' },
+  { id: 'fBillDate', label: 'Date' },
+  { id: 'fBuyerGst', label: 'GST no.' }
+];
+
+function checkRequired() {
+  var missing = [], first = null;
+
+  REQUIRED.forEach(function (r) {
+    var el = $(r.id);
+    var empty = el.textContent.trim() === '';
+    if (empty) { missing.push(r.label); if (!first) first = el; }
+    if (empty) el.classList.add('missing'); else el.classList.remove('missing');
+  });
+
+  if (!missing.length) return true;
+
+  toast('Required: ' + missing.join(', '));
+  if (first) {
+    if (first.scrollIntoView) first.scrollIntoView({ block: 'center', inline: 'nearest' });
+    first.focus();
+  }
+  return false;
+}
+
+/* clearing the flag as soon as something is typed */
+document.addEventListener('input', function (e) {
+  var el = e.target;
+  if (el && el.classList && el.classList.contains('missing') && el.textContent.trim() !== '') {
+    el.classList.remove('missing');
+  }
+});
+
 /* ------------------------------------------------------------------- pdf */
 function download() {
+  if (!checkRequired()) return;
   var name = fileBase() + '.pdf';
   var page = $('invoice');
   var wrap = $('pageWrap');
@@ -386,6 +569,7 @@ function download() {
   document.body.classList.add('exporting');
   wrap.style.transform = 'none';
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  fitAll();                       /* re-measure at 1:1 before the canvas snapshot */
 
   var finish = function () {
     wrap.style.transform = prevTransform;
@@ -405,13 +589,21 @@ function download() {
                    backgroundColor: '#ffffff', useCORS: true, logging: false,
                    windowWidth: PAGE_W, width: PAGE_W, height: PAGE_H },
     jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true }
-  }).from(page).save()
+  }).from(page).toPdf().get('pdf').then(function (pdf) {
+    /* The canvas is a hair taller than one A4 (793.76x1122.56 css px against a
+       595.28x841.89pt page), so jsPDF opens a second, empty sheet for the
+       leftover sliver. The invoice is always exactly one page - drop the rest. */
+    var n = pdf.internal.getNumberOfPages();
+    for (var i = n; i > 1; i--) pdf.deletePage(i);
+  }).save()
     .then(function () { finish(); toast('Saved ' + name); })
     .catch(function (err) { finish(); console.error(err); toast('PDF failed - using Print instead'); printPdf(); });
 }
 
 /* browser "Save as PDF" - the tab title becomes the suggested file name */
 function printPdf() {
+  if (!checkRequired()) return;
+  fitAll();
   var prev = document.title;
   document.title = fileBase();
   document.body.classList.add('exporting');
@@ -475,11 +667,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
 /* ------------------------------------------------------------------ boot */
 (function init() {
-  if (/[?&]sample/.test(location.search)) { restore(SAMPLE, true); applyZoom(); return; }
+  if (/[?&]sample/.test(location.search)) { restore(SAMPLE, true); applyZoom(); fitAll(); return; }
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { saved = null; }
   restore(saved || blank(), true);
   applyZoom();
+  fitAll();
 })();
 
 })();

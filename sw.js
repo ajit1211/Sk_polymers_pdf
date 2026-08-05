@@ -1,6 +1,6 @@
 /* SK POLYMERS invoice - offline cache.
    Bump CACHE when any asset below changes so clients pick the new copy up. */
-var CACHE = 'sk-invoice-v1';
+var CACHE = 'sk-invoice-v2';
 var ASSETS = [
   './',
   './index.html',
