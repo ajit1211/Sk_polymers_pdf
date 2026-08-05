@@ -350,16 +350,15 @@ function bindDate(inputEl, fieldEl) {
   });
 }
 
-/* the calendar button beside a date row on the sheet */
-function bindPicker(btn, picker, fieldEl) {
-  btn.addEventListener('click', function () {
-    picker.value = toISO(fieldEl.textContent) || todayISO();
-    if (picker.showPicker) {
-      try { picker.showPicker(); return; } catch (err) { /* not allowed here - fall through */ }
-    }
-    picker.focus();       /* older browsers: at least land on the control */
-    picker.click();
-  });
+/* the calendar square beside a date row on the sheet.
+   The browser opens the picker on its own when the input is tapped; all we do
+   is seed it with the date already in the box (or today) just before that
+   happens, and copy the result back out. */
+function bindPicker(picker, fieldEl) {
+  var seed = function () { picker.value = toISO(fieldEl.textContent) || todayISO(); };
+  picker.addEventListener('pointerdown', seed);   /* fires before the picker opens */
+  picker.addEventListener('focus', seed);
+
   picker.addEventListener('change', function () {
     if (!picker.value) return;
     fieldEl.textContent = toDMY(picker.value);
@@ -495,6 +494,7 @@ function restore(d, silent) {
   $('inCompany').value = d.company || $('fCompany').textContent;
   $('inDocName').value = d.docName || $('fBillNo').textContent;
   $('inBillDate').value = toISO($('fBillDate').textContent);
+  $('inPoDate').value   = toISO($('fPoDate').textContent);
   REQUIRED.forEach(function (r) { $(r.id).classList.remove('missing'); });
   $('inBillDate').classList.remove('missing');
   recalc();
@@ -558,6 +558,10 @@ function applyZoom() {
   wrap.style.width = (PAGE_W * k) + 'px';
   wrap.style.height = (PAGE_H * k) + 'px';
   $('zoomLabel').textContent = userZoom ? Math.round(k * 100) + '%' : 'Fit';
+  /* the sheet's calendar squares are scaled along with the page, so below ~90%
+     they stop being a usable tap target - hide them and let the toolbar date
+     fields do the job. Zooming back in brings them back. */
+  document.body.classList.toggle('scaled-down', k < 0.9);
 }
 window.addEventListener('resize', applyZoom);
 window.addEventListener('orientationchange', applyZoom);
@@ -699,8 +703,9 @@ $('btnZoomOut').addEventListener('click', function () {
 bindMirror($('inCompany'), $('fCompany'));
 bindMirror($('inDocName'), $('fBillNo'));
 bindDate($('inBillDate'), $('fBillDate'));
-bindPicker($('calBill'), $('dpBill'), $('fBillDate'));
-bindPicker($('calPo'),   $('dpPo'),   $('fPoDate'));
+bindDate($('inPoDate'),   $('fPoDate'));
+bindPicker($('calBill'), $('fBillDate'));
+bindPicker($('calPo'),   $('fPoDate'));
 
 /* --------------------------------------------------------------- install */
 var deferredPrompt = null;

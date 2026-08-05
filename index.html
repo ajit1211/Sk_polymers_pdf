@@ -40,6 +40,10 @@
       <span class="fld-lbl">Invoice date<span class="req" title="Required">*</span></span>
       <input type="date" id="inBillDate">
     </label>
+    <label class="fld">
+      <span class="fld-lbl">Order date</span>
+      <input type="date" id="inPoDate">
+    </label>
     <div class="fld fld-wide">
       <span class="fld-lbl">PDF file name</span>
       <output id="outFileName" class="fld-out">invoice.pdf</output>
@@ -139,16 +143,12 @@
   <div class="l-state">STATE CODE. :</div>
   <div class="v-state ed" id="fStateCode" contenteditable="true">27</div>
 
-  <!-- calendar buttons sit in the page margin beside each date row: screen only,
-       so they can never overlap the printed value -->
-  <button type="button" class="cal no-print" id="calBill" title="Pick invoice date" aria-label="Pick invoice date">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-  </button>
-  <button type="button" class="cal no-print" id="calPo" title="Pick order date" aria-label="Pick order date">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-  </button>
-  <input type="date" class="dp no-print" id="dpBill" tabindex="-1" aria-hidden="true">
-  <input type="date" class="dp no-print" id="dpPo" tabindex="-1" aria-hidden="true">
+  <!-- Real date inputs, painted down to a calendar square, parked in the page
+       margin beside each date row. Tapping the control itself is what opens the
+       native picker - no showPicker() call, so it behaves the same on Android
+       and iOS. Screen only, so they can never cover a printed value. -->
+  <input type="date" class="cal no-print" id="calBill" title="Pick invoice date" aria-label="Pick invoice date">
+  <input type="date" class="cal no-print" id="calPo" title="Pick order date" aria-label="Pick order date">
 
   <!-- ---- items head ---- -->
   <div class="th th-sr">SR<br>NO.</div>
