@@ -54,7 +54,7 @@ body{
 .tb-title span{font-size:12px;color:var(--ui-muted)}
 
 /* --- row 2: name fields --- */
-.tb-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tb-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .fld{display:flex;flex-direction:column;gap:5px;min-width:0}
 .fld-lbl{
   font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
@@ -68,6 +68,11 @@ body{
 }
 .fld input::placeholder{color:#aab2c0}
 .fld input:focus{outline:none;border-color:var(--ui-accent);box-shadow:0 0 0 3px rgba(51,63,80,.12)}
+/* iOS ignores line-height on date inputs and clips the value, so centre it instead */
+.fld input[type=date]{line-height:normal;display:flex;align-items:center;padding-right:8px}
+.fld input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+.fld input[type=date]:hover::-webkit-calendar-picker-indicator{opacity:1}
+.fld input.missing{border-color:#d13b3b;background:#fff6f6}
 .fld-out{
   font-family:ui-monospace,Consolas,"Courier New",monospace; font-size:13px;
   background:var(--ui-soft); border-style:dashed; color:#48546a;
@@ -216,6 +221,30 @@ body{
 /* buyer address is the only multi-line field, so it wins over the nowrap default */
 .sheet .v-address{left:52pt;top:118pt;width:214pt;line-height:11.8pt;white-space:pre-wrap}
 
+/* ---------- date pickers (screen only) ----------
+   The sheet is 524.7pt inside a 595.32pt page, so there is ~35pt of page margin
+   to its right. The calendar buttons live there: always reachable, and they can
+   never sit on top of a printed value. The 1pt inputs behind them are only there
+   to anchor the native picker pop-up next to the row it belongs to. */
+.cal{
+  position:absolute; width:15pt; height:15pt; padding:0; z-index:4;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--ui-line); border-radius:3pt; background:#fff; cursor:pointer;
+}
+.cal svg{width:10pt;height:10pt;fill:none;stroke:var(--ui-accent);stroke-width:2;
+         stroke-linecap:round;stroke-linejoin:round}
+.cal:hover{background:var(--ui-soft);border-color:var(--ui-accent)}
+.cal:active{background:#e9edf4}
+.cal:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(51,63,80,.3)}
+#calBill{left:529pt;top:93.2pt}
+#calPo  {left:529pt;top:120.2pt}
+
+.dp{position:absolute;width:1pt;height:1pt;opacity:0;border:0;padding:0;pointer-events:none}
+#dpBill{left:518pt;top:101pt}
+#dpPo  {left:518pt;top:128pt}
+
+body.exporting .cal,body.exporting .dp{display:none}
+
 /* ---------- items head ---------- */
 /* headings sit centred over their own column, so every column reads as one block */
 .th{font-size:10.5pt;line-height:13.9pt;top:164.3pt;text-align:center}
@@ -336,7 +365,7 @@ body.exporting .page{box-shadow:none}
 @media (max-width:820px){
   .tb-inner{padding:12px 12px 14px;gap:12px}
   .tb-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .tb-fields .fld:last-child{grid-column:1 / -1}
+  .tb-fields .fld-wide{grid-column:1 / -1}
   .seg-zoom{margin-left:0}
   .stage{padding:10px 0 30px}
 }
@@ -372,4 +401,5 @@ body.exporting .page{box-shadow:none}
   .ed{background:none !important;box-shadow:none !important}
   .ed.missing{background:none !important;box-shadow:none !important}
   .ed:empty::before{content:""}
+  .cal,.dp{display:none !important}
 }

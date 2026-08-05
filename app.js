@@ -318,6 +318,57 @@ function trimNum(n) {
   return (Math.round(n * 100) / 100).toString();
 }
 
+/* ------------------------------------------------------------------ dates
+   The sheet prints dd/mm/yyyy; <input type="date"> speaks yyyy-mm-dd. */
+function toDMY(iso) {
+  var p = String(iso || '').split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '';
+}
+
+function toISO(dmy) {
+  var m = /^\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2}|\d{4})\s*$/.exec(dmy || '');
+  if (!m) return '';
+  var d = +m[1], mo = +m[2], y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+  if (d < 1 || d > 31 || mo < 1 || mo > 12) return '';
+  return y + '-' + pad2(mo) + '-' + pad2(d);
+}
+
+function todayISO() {
+  var t = new Date();
+  return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate());
+}
+
+/* toolbar date input <-> the DATE box on the sheet */
+function bindDate(inputEl, fieldEl) {
+  inputEl.addEventListener('change', function () {
+    fieldEl.textContent = inputEl.value ? toDMY(inputEl.value) : '';
+    if (inputEl.value) { fieldEl.classList.remove('missing'); inputEl.classList.remove('missing'); }
+    recalc();
+  });
+  fieldEl.addEventListener('input', function () {
+    inputEl.value = toISO(fieldEl.textContent);   /* '' while half-typed - that's fine */
+  });
+}
+
+/* the calendar button beside a date row on the sheet */
+function bindPicker(btn, picker, fieldEl) {
+  btn.addEventListener('click', function () {
+    picker.value = toISO(fieldEl.textContent) || todayISO();
+    if (picker.showPicker) {
+      try { picker.showPicker(); return; } catch (err) { /* not allowed here - fall through */ }
+    }
+    picker.focus();       /* older browsers: at least land on the control */
+    picker.click();
+  });
+  picker.addEventListener('change', function () {
+    if (!picker.value) return;
+    fieldEl.textContent = toDMY(picker.value);
+    fieldEl.classList.remove('missing');
+    /* bubbles to the toolbar mirror and to the shared recalc listener */
+    fieldEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
 /* --------------------------------------------------------- file name box */
 function clean(s) {
   return String(s || '').replace(/[\\\/:*?"<>|\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -443,7 +494,9 @@ function restore(d, silent) {
   $('chkRound').checked = d.round !== false;
   $('inCompany').value = d.company || $('fCompany').textContent;
   $('inDocName').value = d.docName || $('fBillNo').textContent;
+  $('inBillDate').value = toISO($('fBillDate').textContent);
   REQUIRED.forEach(function (r) { $(r.id).classList.remove('missing'); });
+  $('inBillDate').classList.remove('missing');
   recalc();
   fitAll();
   if (!silent) toast('Restored');
@@ -524,9 +577,9 @@ function toast(msg) {
 /* -------------------------------------------------------------- required */
 /* Note: DATE here is the invoice date (fBillDate), not the order date. */
 var REQUIRED = [
-  { id: 'fCompany',  label: 'Company name' },
-  { id: 'fBillNo',   label: 'Bill no.' },
-  { id: 'fBillDate', label: 'Date' },
+  { id: 'fCompany',  label: 'Company name', input: 'inCompany' },
+  { id: 'fBillNo',   label: 'Bill no.',     input: 'inDocName' },
+  { id: 'fBillDate', label: 'Date',         input: 'inBillDate' },
   { id: 'fBuyerGst', label: 'GST no.' }
 ];
 
@@ -538,6 +591,10 @@ function checkRequired() {
     var empty = el.textContent.trim() === '';
     if (empty) { missing.push(r.label); if (!first) first = el; }
     if (empty) el.classList.add('missing'); else el.classList.remove('missing');
+    /* mirror the flag onto the toolbar copy of the field */
+    if (r.input) {
+      if (empty) $(r.input).classList.add('missing'); else $(r.input).classList.remove('missing');
+    }
   });
 
   if (!missing.length) return true;
@@ -553,9 +610,9 @@ function checkRequired() {
 /* clearing the flag as soon as something is typed */
 document.addEventListener('input', function (e) {
   var el = e.target;
-  if (el && el.classList && el.classList.contains('missing') && el.textContent.trim() !== '') {
-    el.classList.remove('missing');
-  }
+  if (!el || !el.classList || !el.classList.contains('missing')) return;
+  var filled = el.tagName === 'INPUT' ? el.value.trim() !== '' : el.textContent.trim() !== '';
+  if (filled) el.classList.remove('missing');
 });
 
 /* ------------------------------------------------------------------- pdf */
@@ -641,6 +698,9 @@ $('btnZoomOut').addEventListener('click', function () {
 
 bindMirror($('inCompany'), $('fCompany'));
 bindMirror($('inDocName'), $('fBillNo'));
+bindDate($('inBillDate'), $('fBillDate'));
+bindPicker($('calBill'), $('dpBill'), $('fBillDate'));
+bindPicker($('calPo'),   $('dpPo'),   $('fPoDate'));
 
 /* --------------------------------------------------------------- install */
 var deferredPrompt = null;
