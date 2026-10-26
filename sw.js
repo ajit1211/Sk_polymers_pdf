@@ -1,6 +1,8 @@
 /* SK POLYMERS invoice - offline cache.
-   Bump CACHE when any asset below changes so clients pick the new copy up. */
-var CACHE = 'sk-invoice-v2';
+   Network first, so a fixed app.js / app.css reaches installed copies the next
+   time they are opened online; the cache is only the fallback for offline (or
+   a network that hangs). Bump CACHE when the file list changes. */
+var CACHE = 'sk-invoice-v3';
 var ASSETS = [
   './',
   './index.html',
@@ -15,9 +17,13 @@ var ASSETS = [
   './icons/maskable-192.png',
   './icons/maskable-512.png'
 ];
+var NETWORK_WAIT = 4000;   /* ms before a hanging request falls back to the cache */
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () {
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    /* 'reload' skips the browser's HTTP cache, which could hand back the old files */
+    return c.addAll(ASSETS.map(function (u) { return new Request(u, { cache: 'reload' }); }));
+  }).then(function () {
     return self.skipWaiting();
   }));
 });
@@ -28,18 +34,30 @@ self.addEventListener('activate', function (e) {
   }).then(function () { return self.clients.claim(); }));
 });
 
-/* cache-first, fall back to network, then to the cached shell */
 self.addEventListener('fetch', function (e) {
-  if (e.request.method !== 'GET') return;
+  var req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+
+  var network = fetch(req).then(function (res) {
+    if (res && res.status === 200 && res.type === 'basic') {
+      var copy = res.clone();
+      caches.open(CACHE).then(function (c) { return c.put(req, copy); });
+    }
+    return res;
+  });
+
+  var cached = function () {
+    return caches.match(req, { ignoreSearch: true }).then(function (hit) {
+      return hit || (req.mode === 'navigate' ? caches.match('./index.html') : undefined);
+    });
+  };
+
+  var slow = new Promise(function (r) { setTimeout(r, NETWORK_WAIT); }).then(cached);
+
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      return hit || fetch(e.request).then(function (res) {
-        if (res && res.status === 200 && res.type === 'basic') {
-          var copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
-        }
-        return res;
-      }).catch(function () { return caches.match('./index.html'); });
-    })
+    Promise.race([
+      network['catch'](cached),                          /* offline -> cache */
+      slow.then(function (hit) { return hit || network; }) /* hanging -> cache */
+    ]).then(function (res) { return res || network; })
   );
 });

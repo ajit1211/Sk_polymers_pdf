@@ -71,5 +71,7 @@ vendor/      html2pdf (html2canvas + jsPDF) bundled locally so it works offline
 serve.bat    local web server on port 8080
 ```
 
-Changing anything under `vendor/`, `icons/` or the core files? Bump `CACHE` in
-`sw.js` so installed copies pick up the new version.
+Installed copies fetch the latest files whenever they are opened online (the
+offline cache is only a fallback), so an update shows up on the second open
+after it is published. Adding or renaming a file? Add it to `ASSETS` in `sw.js`
+and bump `CACHE`.

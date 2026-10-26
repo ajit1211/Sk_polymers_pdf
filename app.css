@@ -104,6 +104,9 @@ body{
 .btn-danger:hover{background:#fdf3f2;border-color:#e0b0ac}
 .btn-ghost{color:var(--ui-accent2);border-color:#f0c4ab;background:#fff8f4}
 .btn-ghost:hover{background:#fdeee5;border-color:#e5a982}
+/* Download / Print while a PDF is being built */
+.btn:disabled,.btn:disabled:hover{opacity:.65;cursor:progress;background:#fff;border-color:var(--ui-line)}
+.btn-primary:disabled,.btn-primary:disabled:hover{background:var(--ui-accent);border-color:var(--ui-accent)}
 
 /* segmented controls (zoom, tax mode) */
 .seg{
@@ -252,7 +255,6 @@ body{
    a few unusable pixels. There they are hidden and the full-size toolbar date
    fields take over. */
 body.scaled-down .cal{display:none}
-body.exporting .cal{display:none}
 
 /* ---------- items head ---------- */
 /* headings sit centred over their own column, so every column reads as one block */
@@ -353,14 +355,16 @@ body.exporting .cal{display:none}
 .ed:focus{background:#fff7d6;box-shadow:0 0 0 1pt #e2a62a}
 .ed:empty::before{content:attr(data-ph);color:#b9bfc9;font-style:italic}
 .rows td.ed:focus{background:#fff7d6}
-body:not(.exporting) .ed:not(:focus):hover{background:#f2f7ff}
-/* required-field flag - screen only, never reaches the PDF */
-body:not(.exporting) .ed.missing{background:#ffe8e8;box-shadow:0 0 0 1pt #d13b3b}
-body:not(.exporting) .ed.missing:focus{background:#fff7d6;box-shadow:0 0 0 1pt #e2a62a}
+.ed:not(:focus):hover{background:#f2f7ff}
+/* required-field flag - screen only. The PDF is drawn from a copy with the
+   .ed class stripped (sheetCopy() in app.js), so none of this reaches it. */
+.ed.missing{background:#ffe8e8;box-shadow:0 0 0 1pt #d13b3b}
+.ed.missing:focus{background:#fff7d6;box-shadow:0 0 0 1pt #e2a62a}
 .req{color:#b3261e;font-weight:700;margin-left:2px}
-body.exporting .ed:empty::before{content:"";}
-body.exporting .ed{background:none !important;box-shadow:none !important}
-body.exporting .page{box-shadow:none}
+
+/* html2pdf's full-screen (invisible) capture layer - let taps and scrolling
+   through to the page while a PDF renders, so the screen never feels frozen */
+.html2pdf__overlay{pointer-events:none}
 
 /* ─────────────────────────  toast  ───────────────────────── */
 .toast{

@@ -619,60 +619,147 @@ document.addEventListener('input', function (e) {
   if (filled) el.classList.remove('missing');
 });
 
-/* ------------------------------------------------------------------- pdf */
+/* ------------------------------------------------------------------- pdf
+   The PDF is drawn from a copy of the sheet, never from the sheet on screen.
+   - html2pdf parks the copy at the top-left corner of the viewport, and every
+     html2canvas window/scroll option is pinned to match. Left to its defaults
+     the bundled html2canvas adds the page's scroll offset to the capture, so
+     a scrolled page came out shifted down with the bottom of the invoice cut
+     off, and a wide window cut off the left edge.
+   - The sheet on screen is never touched, so a phone doesn't jump to 100% zoom
+     (a big white sheet) while the PDF renders.
+   - Taps while a PDF is being built are ignored. A second render used to save
+     the first one's 100% zoom as the state to restore, leaving the page stuck
+     there. */
+var busy = false;
+var jobSeq = 0;
+
+function setBusy(on) {
+  busy = on;
+  var b = $('btnDownload');
+  b.disabled = on;
+  $('btnPrint').disabled = on;
+  b.textContent = on ? 'Preparing PDF…' : 'Download PDF';
+  b.setAttribute('aria-busy', on ? 'true' : 'false');
+}
+
+/* print-ready copy of the sheet: no ids, no editing state, no calendar squares */
+function sheetCopy() {
+  var page = $('invoice').cloneNode(true);
+  var i, list;
+  page.removeAttribute('id');
+  page.style.boxShadow = 'none';
+  list = page.querySelectorAll('.cal');
+  for (i = list.length - 1; i >= 0; i--) list[i].parentNode.removeChild(list[i]);
+  list = page.querySelectorAll('[id]');
+  for (i = 0; i < list.length; i++) list[i].removeAttribute('id');
+  list = page.querySelectorAll('.ed');
+  for (i = 0; i < list.length; i++) {
+    list[i].removeAttribute('contenteditable');
+    list[i].classList.remove('ed');
+    list[i].classList.remove('missing');
+  }
+  return page;
+}
+
+/* html2canvas clones the whole document into an iframe before drawing. Only
+   the copy is drawn, so skip the toolbar and the on-screen sheet - half the
+   work on a phone. */
+function skipInCapture(el) {
+  return el.id === 'stage' || el.id === 'toast' ||
+         (el.classList && el.classList.contains('toolbar'));
+}
+
+/* anything a failed render can leave behind (html2pdf only removes its overlay
+   on success, html2canvas only removes its iframe on success) */
+function cleanupCapture() {
+  var list = document.querySelectorAll('.html2pdf__overlay, iframe.html2canvas-container');
+  for (var i = list.length - 1; i >= 0; i--) list[i].parentNode.removeChild(list[i]);
+}
+
+function renderPdf(page) {
+  /* phones run out of canvas memory well before desktops do */
+  var phone = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  return new Promise(function (resolve, reject) {
+    html2pdf().set({
+      margin: 0,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: phone || window.innerWidth < 700 ? 2 : 3,
+        backgroundColor: '#ffffff', useCORS: true, logging: false,
+        x: 0, y: 0, scrollX: 0, scrollY: 0,
+        width: PAGE_W, height: PAGE_H, windowWidth: PAGE_W, windowHeight: PAGE_H,
+        ignoreElements: skipInCapture
+      },
+      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true }
+    }).from(page).toPdf().get('pdf').then(function (pdf) {
+      /* The canvas can be a pixel taller than the page once it is rounded to
+         whole pixels, and jsPDF then opens a second sheet for that one-pixel
+         sliver of bottom margin. The invoice is always exactly one page. */
+      for (var i = pdf.internal.getNumberOfPages(); i > 1; i--) pdf.deletePage(i);
+      resolve(pdf);
+    })['catch'](reject);
+  });
+}
+
 function download() {
-  if (!checkRequired()) return;
+  if (busy || !checkRequired()) return;
+  if (!window.html2pdf) { printPdf(); return; }
+
   var name = fileBase() + '.pdf';
-  var page = $('invoice');
-  var wrap = $('pageWrap');
-  var prevTransform = wrap.style.transform;
+  var job = ++jobSeq;
+  var current = function () { return job === jobSeq; };
 
-  document.body.classList.add('exporting');
-  wrap.style.transform = 'none';
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  fitAll();                       /* re-measure at 1:1 before the canvas snapshot */
-
-  var finish = function () {
-    wrap.style.transform = prevTransform;
-    document.body.classList.remove('exporting');
-  };
-
-  if (!window.html2pdf) { finish(); printPdf(); return; }
-
+  setBusy(true);
   toast('Building ' + name + ' ...');
 
-  html2pdf().set({
-    margin: 0,
-    filename: name,
-    image: { type: 'jpeg', quality: 0.98 },
-    /* phones run out of canvas memory well before desktops do */
-    html2canvas: { scale: window.innerWidth < 700 ? 2 : 3,
-                   backgroundColor: '#ffffff', useCORS: true, logging: false,
-                   windowWidth: PAGE_W, width: PAGE_W, height: PAGE_H },
-    jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait', compress: true }
-  }).from(page).toPdf().get('pdf').then(function (pdf) {
-    /* The canvas is a hair taller than one A4 (793.76x1122.56 css px against a
-       595.28x841.89pt page), so jsPDF opens a second, empty sheet for the
-       leftover sliver. The invoice is always exactly one page - drop the rest. */
-    var n = pdf.internal.getNumberOfPages();
-    for (var i = n; i > 1; i--) pdf.deletePage(i);
-  }).save()
-    .then(function () { finish(); toast('Saved ' + name); })
-    .catch(function (err) { finish(); console.error(err); toast('PDF failed - using Print instead'); printPdf(); });
+  /* it takes a second or two - if it ever hangs, hand the buttons back */
+  var watchdog = setTimeout(function () {
+    if (!current()) return;
+    jobSeq++;                       /* a late result is dropped, not saved */
+    cleanupCapture();
+    setBusy(false);
+    toast('PDF is taking too long - please try again');
+  }, 45000);
+
+  Promise.resolve(document.fonts && document.fonts.ready).then(function () {
+    fitAll();                       /* sizes are copied into the snapshot */
+    return renderPdf(sheetCopy());
+  }).then(function (pdf) {
+    if (!current()) return;
+    pdf.save(name);
+    toast('Saved ' + name);
+  })['catch'](function (err) {
+    console.error(err);
+    if (current()) toast('Could not build the PDF - use Print > Save as PDF');
+  }).then(function () {
+    if (!current()) return;
+    clearTimeout(watchdog);
+    cleanupCapture();
+    setBusy(false);
+  });
 }
 
 /* browser "Save as PDF" - the tab title becomes the suggested file name */
 function printPdf() {
-  if (!checkRequired()) return;
+  if (busy || !checkRequired()) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   fitAll();
-  var prev = document.title;
-  document.title = fileBase();
-  document.body.classList.add('exporting');
-  window.print();
-  setTimeout(function () {
+  var prev = document.title, restored = false;
+  var restore = function () {
+    if (restored) return;
+    restored = true;
+    window.removeEventListener('afterprint', restore);
     document.title = prev;
-    document.body.classList.remove('exporting');
-  }, 600);
+  };
+  document.title = fileBase();
+  window.addEventListener('afterprint', restore);
+  window.print();
+  /* desktop print() blocks until the dialog closes, phones return straight
+     away and fire afterprint later - restoring on a timer would rename the PDF
+     back to the app title before the phone's print screen reads it */
+  if (!('onafterprint' in window)) setTimeout(restore, 1000);
 }
 
 /* -------------------------------------------------------------- controls */
